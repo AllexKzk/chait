@@ -3,6 +3,11 @@ import { z } from "zod";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getAuthContext, ensureAnonId } from "@/lib/auth";
 import {
+  FREE_LIMIT,
+  getAnonUsageCount,
+  incrementAnonUsage,
+} from "@/lib/anon-usage";
+import {
   OPENROUTER_API_URL,
   DEFAULT_MODEL,
   FREE_MODEL_ID,
@@ -67,13 +72,9 @@ export async function POST(
     }
 
     if (!userId && anonId) {
-      const { data: usage } = await db
-        .from("anon_usage")
-        .select("message_count")
-        .eq("anon_id", anonId)
-        .single();
+      const usageCount = await getAnonUsageCount(db, anonId);
 
-      if ((usage?.message_count ?? 0) >= 3) {
+      if (usageCount >= FREE_LIMIT) {
         return Response.json(
           {
             error:
@@ -92,7 +93,7 @@ export async function POST(
 
     // Increment anonymous usage counter
     if (!userId && anonId) {
-      await db.rpc("increment_anon_usage", { p_anon_id: anonId }).single();
+      await incrementAnonUsage(db, anonId);
     }
 
     const { count: msgCount } = await db

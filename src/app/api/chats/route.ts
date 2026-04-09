@@ -7,20 +7,29 @@ export async function GET() {
     const { userId, anonId } = await getAuthContext();
     const db = createServerSupabase();
 
-    let query = db
-      .from("chats")
-      .select("*")
-      .order("created_at", { ascending: false });
-
     if (userId) {
-      query = query.eq("user_id", userId);
-    } else if (anonId) {
-      query = query.eq("anon_id", anonId);
-    } else {
+      const { data, error } = await db
+        .from("chats")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return NextResponse.json(data);
+    }
+
+    if (!anonId) {
       return NextResponse.json([]);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await db
+      .from("chats")
+      .select("*")
+      .eq("anon_id", anonId)
+      .is("user_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
     if (error) throw error;
 
     return NextResponse.json(data);
@@ -39,6 +48,23 @@ export async function POST() {
     const anonId = userId ? null : await ensureAnonId();
 
     const db = createServerSupabase();
+
+    if (!userId && anonId) {
+      const { data: existingChat, error: existingChatError } = await db
+        .from("chats")
+        .select("*")
+        .eq("anon_id", anonId)
+        .is("user_id", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingChatError) throw existingChatError;
+      if (existingChat) {
+        return NextResponse.json(existingChat);
+      }
+    }
+
     const { data, error } = await db
       .from("chats")
       .insert({

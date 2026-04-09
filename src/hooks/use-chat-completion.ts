@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiKey } from "@/components/settings/user-settings-dialog";
+import type { Message } from "@/types";
 
 export function useChatCompletion(chatId: string) {
   const [streamingContent, setStreamingContent] = useState("");
@@ -24,16 +25,7 @@ export function useChatCompletion(chatId: string) {
       setStreamingContent("");
       setStreamingReasoning("");
 
-      queryClient.setQueryData<
-        Array<{
-          id: string;
-          chat_id: string;
-          role: string;
-          content: string;
-          metadata: null;
-          created_at: string;
-        }>
-      >(["messages", chatId], (old = []) => [
+      queryClient.setQueryData<Message[]>(["messages", chatId], (old = []) => [
         ...old,
         {
           id: `temp-${Date.now()}`,
@@ -102,6 +94,26 @@ export function useChatCompletion(chatId: string) {
               }
             }
           }
+        }
+
+        if (accContent || accReasoning) {
+          queryClient.setQueryData<Message[]>(["messages", chatId], (old = []) => [
+            ...old,
+            {
+              id: `temp-assistant-${Date.now()}`,
+              chat_id: chatId,
+              role: "assistant",
+              content: accContent,
+              metadata: accReasoning
+                ? {
+                    reasoning_details: [
+                      { type: "thinking", content: accReasoning },
+                    ],
+                  }
+                : null,
+              created_at: new Date().toISOString(),
+            },
+          ]);
         }
       } catch (err) {
         console.error("Streaming error:", err);

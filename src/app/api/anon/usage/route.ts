@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase-server";
-
-const FREE_LIMIT = 3;
+import { FREE_LIMIT, getAnonUsageCount } from "@/lib/anon-usage";
 
 export async function GET() {
   try {
@@ -17,14 +16,10 @@ export async function GET() {
     }
 
     const db = createServerSupabase();
-    const { data: usage } = await db
-      .from("anon_usage")
-      .select("message_count")
-      .eq("anon_id", anonId)
-      .single();
+    const used = await getAnonUsageCount(db, anonId);
 
     return NextResponse.json({
-      used: usage?.message_count ?? 0,
+      used,
       limit: FREE_LIMIT,
       unlimited: false,
     });

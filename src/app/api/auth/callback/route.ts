@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { clearAnonId, syncUserAndMigrateAnonChat } from "@/lib/auth";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -35,10 +35,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=auth_failed`);
     }
 
-    const db = createServerSupabase();
-    await db
-      .from("users")
-      .upsert({ email: data.user.email! }, { onConflict: "email" });
+    const anonId = cookieStore.get("anon_id")?.value ?? null;
+    await syncUserAndMigrateAnonChat(data.user.email!, anonId);
+    await clearAnonId();
 
     return NextResponse.redirect(`${origin}${next}`);
   }
@@ -54,10 +53,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=verification_failed`);
     }
 
-    const db = createServerSupabase();
-    await db
-      .from("users")
-      .upsert({ email: data.user.email! }, { onConflict: "email" });
+    const anonId = cookieStore.get("anon_id")?.value ?? null;
+    await syncUserAndMigrateAnonChat(data.user.email!, anonId);
+    await clearAnonId();
 
     return NextResponse.redirect(`${origin}${next}`);
   }

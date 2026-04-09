@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { clearAnonId, syncUserAndMigrateAnonChat } from "@/lib/auth";
 
 export async function POST() {
   try {
@@ -27,10 +27,9 @@ export async function POST() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const db = createServerSupabase();
-    await db
-      .from("users")
-      .upsert({ email: user.email }, { onConflict: "email" });
+    const anonId = cookieStore.get("anon_id")?.value ?? null;
+    await syncUserAndMigrateAnonChat(user.email, anonId);
+    await clearAnonId();
 
     return NextResponse.json({ ok: true });
   } catch (err) {

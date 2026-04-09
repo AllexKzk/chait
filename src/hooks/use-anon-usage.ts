@@ -9,7 +9,7 @@ interface AnonUsage {
 }
 
 async function fetchUsage(): Promise<AnonUsage> {
-  const res = await fetch("/api/anon/usage");
+  const res = await fetch("/api/anon/usage", { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch usage");
   return res.json();
 }

@@ -51,8 +51,12 @@ export default function LoginPage() {
         setError(signInError.message);
       } else {
         // Sync user to our DB
-        await fetch("/api/auth/sync", { method: "POST" });
+        await fetch("/api/auth/sync", {
+          method: "POST",
+          cache: "no-store",
+        });
         router.push("/");
+        router.refresh();
       }
     }
 

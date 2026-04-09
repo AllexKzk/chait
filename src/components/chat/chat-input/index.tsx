@@ -2,9 +2,13 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Send, Paperclip } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ModelSelector } from "@/components/chat/model-selector";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+import { useAnonUsage } from "@/hooks/use-anon-usage";
 import { DEFAULT_MODEL } from "@/lib/openrouter";
 
 interface ChatInputProps {
@@ -18,11 +22,18 @@ export function ChatInput({
   onSend,
   onAttach,
   disabled = false,
-  showAttach = false,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [model, setModel] = useState(DEFAULT_MODEL);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { data: usage } = useAnonUsage();
+
+  const showAnonUsage =
+    !authLoading && !isAuthenticated && !!usage && !usage.unlimited;
+  const remainingMessages = showAnonUsage
+    ? Math.max(0, usage.limit - usage.used)
+    : null;
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim();
@@ -40,22 +51,41 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-t p-4 flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <ModelSelector value={model} onChange={setModel} />
-      </div>
-      <div className="flex items-end gap-2">
-        {showAttach && (
+    <div className="p-4 flex flex-col gap-2">
+      <div className="flex justify-between">
+        <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
+            variant="outline"
+            size="xs"
             onClick={onAttach}
             disabled={disabled}
+            className="h-full"
           >
-            <Paperclip className="h-4 w-4" />
+            <Paperclip />
+            <span className="text-muted-foreground">Attach file</span>
           </Button>
-        )}
+          <ModelSelector value={model} onChange={setModel} />
+        </div>
+        <div className="flex items-center gap-2">
+          {showAnonUsage && remainingMessages !== null && (
+            <Badge
+              variant="outline"
+              className="rounded-sm h-full text-muted-foreground"
+            >
+              {remainingMessages} free messages left
+            </Badge>
+          )}
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={handleSubmit}
+            disabled={disabled || !value.trim() || remainingMessages === 0}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="flex items-end gap-2">
         <Textarea
           ref={textareaRef}
           value={value}
@@ -66,14 +96,6 @@ export function ChatInput({
           rows={1}
           disabled={disabled}
         />
-        <Button
-          size="icon"
-          className="shrink-0"
-          onClick={handleSubmit}
-          disabled={disabled || !value.trim()}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
       </div>
     </div>
   );

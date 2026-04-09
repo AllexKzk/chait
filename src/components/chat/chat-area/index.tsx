@@ -2,10 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  MessageBubble,
-  StreamingBubble,
-} from "@/components/chat/message-bubble";
+import { MessageBubble } from "@/components/chat/message-bubble";
+import { StreamingBubble } from "@/components/chat/message-bubble/streaming-bubble";
 import { ChatInput } from "@/components/chat/chat-input";
 import { DocumentList } from "@/components/chat/document-list";
 import { useMessages } from "@/hooks/use-messages";
@@ -24,10 +22,34 @@ export function ChatArea({ chatId }: ChatAreaProps) {
   const uploadDoc = useUploadDocument(chatId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingPromptHandledRef = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
+
+  useEffect(() => {
+    if (pendingPromptHandledRef.current) return;
+
+    const rawPendingPrompt = sessionStorage.getItem(`pending-chat:${chatId}`);
+    if (!rawPendingPrompt) return;
+
+    pendingPromptHandledRef.current = true;
+    sessionStorage.removeItem(`pending-chat:${chatId}`);
+
+    try {
+      const { message, model } = JSON.parse(rawPendingPrompt) as {
+        message?: string;
+        model?: string;
+      };
+
+      if (message?.trim()) {
+        send(message, model);
+      }
+    } catch {
+      // Ignore malformed pending prompt payloads.
+    }
+  }, [chatId, send]);
 
   const handleSend = (content: string, model: string) => {
     send(content, model);

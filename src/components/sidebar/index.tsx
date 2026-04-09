@@ -16,6 +16,7 @@ import { UserSettingsDialog } from "@/components/settings/user-settings-dialog";
 import { ChatItem } from "./chat-item";
 import { ThemeToggle } from "./theme-toggle";
 import type { Chat } from "@/types";
+import { useAuth } from "@/hooks/use-auth";
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
@@ -103,7 +104,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export function Sidebar() {
   const [open, setOpen] = useState(false);
 
-  return (
+  const { isAuthenticated } = useAuth();
+
+  return !isAuthenticated ? (
+    <></>
+  ) : (
     <>
       <aside className="hidden h-full min-h-0 w-64 flex-col border-r bg-muted/30 md:flex">
         <SidebarContent />
