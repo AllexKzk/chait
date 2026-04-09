@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Chatbot",
+  title: "CHAIT",
   description: "AI Chatbot with multi-model support",
 };
 

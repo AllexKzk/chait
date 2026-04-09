@@ -2,6 +2,7 @@
 
 import type { Message } from "@/types";
 import { cn } from "@/lib/utils";
+import { MarkdownContent } from "./markdown-content";
 import { ReasoningBlock } from "./reasoning-block";
 
 export { StreamingBubble } from "./streaming-bubble";
@@ -32,7 +33,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             content={reasoningDetails.map((r) => r.content).join("\n")}
           />
         )}
-        <div className="whitespace-pre-wrap">{message.content}</div>
+        <MarkdownContent content={message.content} />
       </div>
     </div>
   );

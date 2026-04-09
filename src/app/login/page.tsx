@@ -38,7 +38,7 @@ export default function LoginPage() {
         setError(signUpError.message);
       } else {
         setSuccess(
-          "Check your email for a confirmation link, or sign in if email confirmation is disabled."
+          "Check your email for a confirmation link, or sign in if email confirmation is disabled.",
         );
       }
     } else {
@@ -63,7 +63,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm flex flex-col gap-6 p-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Chatbot</h1>
+          <h1 className="text-3xl font-bold">
+            CH<i>AI</i>T
+          </h1>
           <p className="text-muted-foreground mt-1">
             {mode === "signin"
               ? "Sign in to your account"
@@ -88,19 +90,11 @@ export default function LoginPage() {
             minLength={6}
           />
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-          {success && (
-            <p className="text-sm text-green-600">{success}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {success && <p className="text-sm text-green-600">{success}</p>}
 
           <Button type="submit" size="lg" disabled={loading}>
-            {loading
-              ? "Loading..."
-              : mode === "signin"
-                ? "Sign in"
-                : "Sign up"}
+            {loading ? "Loading..." : mode === "signin" ? "Sign in" : "Sign up"}
           </Button>
         </form>
 

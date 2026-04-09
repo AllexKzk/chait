@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Brain } from "lucide-react";
+import { MarkdownContent } from "./markdown-content";
 
 interface ReasoningBlockProps {
   content: string;
@@ -25,8 +26,8 @@ export function ReasoningBlock({ content }: ReasoningBlockProps) {
         )}
       </button>
       {open && (
-        <div className="mt-1.5 rounded-md bg-background/50 p-2.5 text-xs text-muted-foreground whitespace-pre-wrap border">
-          {content}
+        <div className="mt-1.5 rounded-md border bg-background/50 p-2.5 text-xs text-muted-foreground">
+          <MarkdownContent content={content} compact />
         </div>
       )}
     </div>

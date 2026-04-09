@@ -2,7 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageBubble, StreamingBubble } from "@/components/chat/message-bubble";
+import {
+  MessageBubble,
+  StreamingBubble,
+} from "@/components/chat/message-bubble";
 import { ChatInput } from "@/components/chat/chat-input";
 import { DocumentList } from "@/components/chat/document-list";
 import { useMessages } from "@/hooks/use-messages";
@@ -43,10 +46,10 @@ export function ChatArea({ chatId }: ChatAreaProps) {
   };
 
   return (
-    <div className="flex flex-1 flex-col h-full">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <DocumentList chatId={chatId} />
-      <ScrollArea className="flex-1 p-4">
-        <div className="flex flex-col gap-3 max-w-3xl mx-auto">
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
           {isLoading && (
             <p className="text-center text-sm text-muted-foreground py-8">
               Loading messages...
