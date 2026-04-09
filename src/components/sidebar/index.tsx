@@ -41,8 +41,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     onNavigate?.();
   };
 
-  const handleDelete = (e: React.MouseEvent, chatId: string) => {
-    e.stopPropagation();
+  const handleDelete = (chatId: string) => {
     deleteChat.mutate(chatId);
     if (activeChatId === chatId) {
       router.push("/");
@@ -51,7 +50,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         <div className="flex items-center justify-between p-3 border-b">
           <span className="font-semibold text-sm">Chats</span>
           <Button
@@ -64,7 +63,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </Button>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="flex flex-col gap-0.5 p-2">
             {isLoading && (
               <p className="p-3 text-xs text-muted-foreground">Loading...</p>
@@ -96,10 +95,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <UserSettingsDialog
-        open={showSettings}
-        onOpenChange={setShowSettings}
-      />
+      <UserSettingsDialog open={showSettings} onOpenChange={setShowSettings} />
     </>
   );
 }
@@ -109,7 +105,7 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex h-full w-64 flex-col border-r bg-muted/30">
+      <aside className="hidden h-full min-h-0 w-64 flex-col border-r bg-muted/30 md:flex">
         <SidebarContent />
       </aside>
 
@@ -118,7 +114,7 @@ export function Sidebar() {
           <SheetTrigger render={<Button variant="ghost" size="icon" />}>
             <Menu className="h-5 w-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent side="left" className="h-full min-h-0 w-64 p-0">
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <SidebarContent onNavigate={() => setOpen(false)} />
           </SheetContent>
