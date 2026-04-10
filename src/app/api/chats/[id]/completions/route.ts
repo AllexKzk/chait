@@ -4,19 +4,36 @@ import { ensureAnonId } from "@/lib/auth";
 import { requireChatAccess } from "@/lib/chat-access";
 import {
   FREE_LIMIT,
-  getAnonUsageCount,
-  incrementAnonUsage,
+  consumeAnonQuota,
 } from "@/lib/anon-usage";
 import {
   OPENROUTER_API_URL,
+  AVAILABLE_MODELS,
   DEFAULT_MODEL,
   FREE_MODEL_ID,
 } from "@/lib/openrouter";
+import {
+  isContentLengthOverLimit,
+  MAX_COMPLETION_REQUEST_BYTES,
+  MAX_MESSAGE_LENGTH,
+  MAX_MODEL_ID_LENGTH,
+  MAX_RAG_CHUNKS,
+} from "@/lib/security";
 
-const completionSchema = z.object({
-  content: z.string().min(1),
-  model: z.string().optional(),
-});
+const ALLOWED_MODEL_IDS = new Set(AVAILABLE_MODELS.map((model) => model.id));
+
+const completionSchema = z
+  .object({
+    content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+    model: z.string().trim().max(MAX_MODEL_ID_LENGTH).optional(),
+  })
+  .refine(
+    (value) => value.model === undefined || ALLOWED_MODEL_IDS.has(value.model),
+    {
+      path: ["model"],
+      message: "Unsupported model",
+    }
+  );
 
 type MessageContentPart =
   | { type: "text"; text: string }
@@ -72,6 +89,21 @@ export async function POST(
   let userMessageInserted = false;
 
   try {
+    if (
+      isContentLengthOverLimit(
+        req.headers.get("content-length"),
+        MAX_COMPLETION_REQUEST_BYTES
+      )
+    ) {
+      return Response.json(
+        {
+          error: "Request payload is too large",
+          deliveryStatus: "not_delivered",
+        },
+        { status: 413 }
+      );
+    }
+
     const { id: chatId } = await params;
     const llmKey = req.headers.get("x-llm-key");
 
@@ -108,9 +140,8 @@ export async function POST(
     const anonId = userId ? null : await ensureAnonId();
 
     if (!userId && anonId) {
-      const usageCount = await getAnonUsageCount(db, anonId);
-
-      if (usageCount >= FREE_LIMIT) {
+      const quotaAccepted = await consumeAnonQuota(db, anonId, FREE_LIMIT);
+      if (!quotaAccepted) {
         return Response.json(
           {
             error:
@@ -131,11 +162,6 @@ export async function POST(
       throw insertError;
     }
     userMessageInserted = true;
-
-    // Increment anonymous usage counter
-    if (!userId && anonId) {
-      await incrementAnonUsage(db, anonId);
-    }
 
     const { count: msgCount } = await db
       .from("messages")
@@ -197,7 +223,10 @@ export async function POST(
     const systemParts: string[] = ["You are a helpful assistant."];
 
     if (chunks && chunks.length > 0) {
-      const context = chunks.map((c) => c.content).join("\n\n---\n\n");
+      const context = chunks
+        .slice(0, MAX_RAG_CHUNKS)
+        .map((c) => c.content)
+        .join("\n\n---\n\n");
       systemParts.push(
         `The user has uploaded documents. Use the following context to answer questions:\n\n${context}`
       );
@@ -247,11 +276,13 @@ export async function POST(
 
     if (!openRouterRes.ok) {
       const errText = await openRouterRes.text();
-      console.error("OpenRouter error:", errText);
+      console.error("OpenRouter error:", {
+        status: openRouterRes.status,
+        details: extractProviderErrorDetails(errText),
+      });
       return Response.json(
         {
           error: "LLM request failed",
-          details: extractProviderErrorDetails(errText),
           deliveryStatus: "delivered",
         },
         { status: 502 }
@@ -343,7 +374,6 @@ export async function POST(
         error: userMessageInserted
           ? "LLM request failed"
           : "Internal server error",
-        details: err instanceof Error ? err.message : undefined,
         deliveryStatus: userMessageInserted ? "delivered" : "not_delivered",
       },
       { status: userMessageInserted ? 502 : 500 }

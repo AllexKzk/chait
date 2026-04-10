@@ -2,9 +2,25 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Document } from "@/types";
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  MAX_TEXT_UPLOAD_BYTES,
+} from "@/lib/security";
 
 function isImageFile(file: File) {
   return file.type.startsWith("image/");
+}
+
+function isSupportedTextFile(file: File) {
+  const normalizedName = file.name.toLowerCase();
+  return (
+    file.type.startsWith("text/") ||
+    file.type === "application/json" ||
+    normalizedName.endsWith(".txt") ||
+    normalizedName.endsWith(".md") ||
+    normalizedName.endsWith(".csv") ||
+    normalizedName.endsWith(".json")
+  );
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -32,6 +48,21 @@ async function fetchDocuments(chatId: string): Promise<Document[]> {
 }
 
 async function uploadDocument(chatId: string, file: File): Promise<Document> {
+  if (!isImageFile(file) && !isSupportedTextFile(file)) {
+    throw new Error("Unsupported file type");
+  }
+
+  const maxBytes = isImageFile(file)
+    ? MAX_IMAGE_UPLOAD_BYTES
+    : MAX_TEXT_UPLOAD_BYTES;
+  if (file.size > maxBytes) {
+    throw new Error(
+      isImageFile(file)
+        ? "Image exceeds the 4 MB limit"
+        : "Document exceeds the 1 MB limit",
+    );
+  }
+
   const form = new FormData();
   form.append("file", file);
 

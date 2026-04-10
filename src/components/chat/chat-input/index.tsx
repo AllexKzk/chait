@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useAnonUsage } from "@/hooks/use-anon-usage";
 import { DEFAULT_MODEL } from "@/lib/openrouter";
+import { MAX_MESSAGE_LENGTH } from "@/lib/security";
 import { DocumentList } from "../document-list";
 
 interface ChatInputProps {
@@ -99,6 +100,7 @@ export function ChatInput({
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
+          maxLength={MAX_MESSAGE_LENGTH}
           className="min-h-[44px] max-h-[200px] resize-none"
           rows={1}
           disabled={disabled}

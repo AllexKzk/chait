@@ -21,18 +21,48 @@ function getAnonCookieOptions() {
 }
 
 export async function syncUserAndMigrateAnonChat(
+  authUserId: string,
   email: string,
   anonId?: string | null,
 ) {
   const db = createServerSupabase();
-  const { data: dbUser, error: userError } = await db
+  const { data: existingUser, error: existingUserError } = await db
     .from("users")
-    .upsert({ email }, { onConflict: "email" })
-    .select("id")
-    .single();
+    .select("id, email")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
 
-  if (userError) {
-    throw userError;
+  if (existingUserError) {
+    throw existingUserError;
+  }
+
+  let dbUser = existingUser;
+
+  if (!dbUser) {
+    const result = await db
+      .from("users")
+      .upsert({ email, auth_user_id: authUserId }, { onConflict: "email" })
+      .select("id, email")
+      .single();
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    dbUser = result.data;
+  } else if (dbUser.email !== email) {
+    const result = await db
+      .from("users")
+      .update({ email })
+      .eq("id", dbUser.id)
+      .select("id, email")
+      .single();
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    dbUser = result.data;
   }
 
   if (anonId) {
@@ -93,8 +123,8 @@ export async function getAuthContext(): Promise<AuthContext> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user?.email) {
-    const userId = await syncUserAndMigrateAnonChat(user.email);
+  if (user?.id && user.email) {
+    const userId = await syncUserAndMigrateAnonChat(user.id, user.email);
     return { userId, anonId: null };
   }
 

@@ -28,7 +28,7 @@ export async function POST() {
     }
 
     const anonId = cookieStore.get("anon_id")?.value ?? null;
-    await syncUserAndMigrateAnonChat(user.email, anonId);
+    await syncUserAndMigrateAnonChat(user.id, user.email, anonId);
     await clearAnonId();
 
     return NextResponse.json({ ok: true });

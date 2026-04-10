@@ -74,7 +74,8 @@ export function UserSettingsDialog({
             }}
           />
           <p className="text-xs text-muted-foreground">
-            Stored in your browser only. Never sent to our server.
+            Stored locally in your browser and sent through our server proxy only
+            when you request a model response.
           </p>
           <Button onClick={handleSave}>{saved ? "Saved!" : "Save key"}</Button>
         </div>

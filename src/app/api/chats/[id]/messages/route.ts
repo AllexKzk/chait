@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireChatAccess } from "@/lib/chat-access";
+import { MAX_MESSAGE_LENGTH } from "@/lib/security";
 
 const createMessageSchema = z.object({
-  role: z.enum(["user", "assistant"]),
-  content: z.string().min(1),
-});
+  content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+}).strict();
 
 export async function GET(
   _req: Request,
@@ -63,7 +63,7 @@ export async function POST(
       .from("messages")
       .insert({
         chat_id: id,
-        role: parsed.data.role,
+        role: "user",
         content: parsed.data.content,
       })
       .select()

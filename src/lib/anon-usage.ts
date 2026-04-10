@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createServerSupabase } from "@/lib/supabase-server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const FREE_LIMIT = 3;
 const ANON_USAGE_COOKIE_NAME = "anon_usage";
@@ -8,6 +8,16 @@ const MISSING_ANON_USAGE_CODES = new Set(["PGRST202", "PGRST205"]);
 
 function isMissingAnonUsageSchema(code?: string) {
   return !!code && MISSING_ANON_USAGE_CODES.has(code);
+}
+
+function canUseFallbackAnonUsage() {
+  return process.env.NODE_ENV !== "production";
+}
+
+function missingAnonUsageSchemaError() {
+  return new Error(
+    "anon_usage schema is missing. Apply the latest Supabase migrations before serving production traffic."
+  );
 }
 
 function getAnonUsageCookieOptions() {
@@ -57,7 +67,7 @@ export async function clearFallbackAnonUsage() {
 }
 
 export async function getAnonUsageCount(
-  db: ReturnType<typeof createServerSupabase>,
+  db: SupabaseClient,
   anonId: string,
 ) {
   const usageResult = await db
@@ -74,23 +84,39 @@ export async function getAnonUsageCount(
     throw usageResult.error;
   }
 
-  // Fallback for databases where anon_usage migration has not been applied yet.
-  // We persist usage in an httpOnly cookie so deleted chats do not reset the limit.
+  if (!canUseFallbackAnonUsage()) {
+    throw missingAnonUsageSchemaError();
+  }
+
+  // Dev-only fallback for databases where anon_usage migration has not been applied yet.
   return getFallbackAnonUsageCount(anonId);
 }
 
-export async function incrementAnonUsage(
-  db: ReturnType<typeof createServerSupabase>,
+export async function consumeAnonQuota(
+  db: SupabaseClient,
   anonId: string,
+  limit: number,
 ) {
-  const result = await db.rpc("increment_anon_usage", { p_anon_id: anonId });
+  const result = await db.rpc("consume_anon_quota", {
+    p_anon_id: anonId,
+    p_limit: limit,
+  });
   if (!result.error) {
-    return;
+    return result.data === true;
   }
 
   if (isMissingAnonUsageSchema(result.error.code)) {
+    if (!canUseFallbackAnonUsage()) {
+      throw missingAnonUsageSchemaError();
+    }
+
+    const currentCount = await getFallbackAnonUsageCount(anonId);
+    if (currentCount >= limit) {
+      return false;
+    }
+
     await incrementFallbackAnonUsage(anonId);
-    return;
+    return true;
   }
 
   throw result.error;

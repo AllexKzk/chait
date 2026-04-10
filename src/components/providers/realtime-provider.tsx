@@ -2,15 +2,14 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import { useParams } from "next/navigation";
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const params = useParams<{ id?: string }>();
+  const chatId = typeof params?.id === "string" ? params.id : null;
 
-  // For anonymous users, anonId is managed server-side via cookies.
-  // We pass null here since Realtime filtering by anon_id
-  // requires the anon_id value which is in an httpOnly cookie.
-  // Anonymous users still get sync via query invalidation on message send.
-  useRealtimeSync(user?.id ?? null, null);
+  useRealtimeSync(user?.id ?? null, chatId);
 
   return <>{children}</>;
 }

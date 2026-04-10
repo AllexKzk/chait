@@ -1,9 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireChatAccess } from "@/lib/chat-access";
 import { chunkText } from "@/lib/chunking";
+import {
+  getDataUrlPayloadBytes,
+  isContentLengthOverLimit,
+  MAX_DOCUMENT_CHARACTERS,
+  MAX_DOCUMENT_NAME_LENGTH,
+  MAX_IMAGE_UPLOAD_BYTES,
+  MAX_TEXT_UPLOAD_BYTES,
+  MAX_UPLOAD_REQUEST_BYTES,
+} from "@/lib/security";
 
 function isImageFile(file: File) {
   return file.type.startsWith("image/");
+}
+
+function isSupportedTextFile(file: File) {
+  const normalizedName = file.name.toLowerCase();
+  return (
+    file.type.startsWith("text/") ||
+    file.type === "application/json" ||
+    normalizedName.endsWith(".txt") ||
+    normalizedName.endsWith(".md") ||
+    normalizedName.endsWith(".csv") ||
+    normalizedName.endsWith(".json")
+  );
 }
 
 function isImageDataUrl(value: string) {
@@ -60,6 +81,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (
+      isContentLengthOverLimit(
+        req.headers.get("content-length"),
+        MAX_UPLOAD_REQUEST_BYTES
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Upload payload is too large" },
+        { status: 413 }
+      );
+    }
+
     const { id: chatId } = await params;
     const { db, errorResponse } = await requireChatAccess(chatId);
 
@@ -89,6 +122,37 @@ export async function POST(
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    if (upload.name.length > MAX_DOCUMENT_NAME_LENGTH) {
+      return NextResponse.json(
+        { error: "File name is too long" },
+        { status: 400 }
+      );
+    }
+
+    if (file && !isImageFile(file) && !isSupportedTextFile(file)) {
+      return NextResponse.json(
+        { error: "Unsupported file type" },
+        { status: 400 }
+      );
+    }
+
+    if (file) {
+      const maxBytes = isImageFile(file)
+        ? MAX_IMAGE_UPLOAD_BYTES
+        : MAX_TEXT_UPLOAD_BYTES;
+
+      if (file.size > maxBytes) {
+        return NextResponse.json(
+          {
+            error: isImageFile(file)
+              ? "Image is too large"
+              : "Document is too large",
+          },
+          { status: 413 }
+        );
+      }
+    }
+
     if (upload.isImage && !isImageDataUrl(upload.content)) {
       return NextResponse.json(
         { error: "Invalid image payload" },
@@ -96,10 +160,27 @@ export async function POST(
       );
     }
 
+    if (
+      upload.isImage &&
+      getDataUrlPayloadBytes(upload.content) > MAX_IMAGE_UPLOAD_BYTES
+    ) {
+      return NextResponse.json(
+        { error: "Image is too large" },
+        { status: 413 }
+      );
+    }
+
     if (!upload.content.trim()) {
       return NextResponse.json(
         { error: "File is empty or could not be read" },
         { status: 400 }
+      );
+    }
+
+    if (!upload.isImage && upload.content.length > MAX_DOCUMENT_CHARACTERS) {
+      return NextResponse.json(
+        { error: "Document is too large" },
+        { status: 413 }
       );
     }
 

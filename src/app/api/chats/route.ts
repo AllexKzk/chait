@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getAuthContext, ensureAnonId } from "@/lib/auth";
+import { createAuthServerClient } from "@/lib/supabase-auth-server";
 
 export async function GET() {
   try {
     const { userId, anonId } = await getAuthContext();
-    const db = createServerSupabase();
+    const db = userId
+      ? await createAuthServerClient()
+      : createServerSupabase();
 
     if (userId) {
       const { data, error } = await db
@@ -47,7 +50,9 @@ export async function POST() {
     const { userId } = await getAuthContext();
     const anonId = userId ? null : await ensureAnonId();
 
-    const db = createServerSupabase();
+    const db = userId
+      ? await createAuthServerClient()
+      : createServerSupabase();
 
     if (!userId && anonId) {
       const { data: existingChat, error: existingChatError } = await db

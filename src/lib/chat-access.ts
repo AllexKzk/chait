@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAuthContext } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { createAuthServerClient } from "@/lib/supabase-auth-server";
 
 type ChatAccessResult =
   | {
-      db: ReturnType<typeof createServerSupabase>;
+      db: SupabaseClient;
       userId: string | null;
       anonId: string | null;
       chat: { id: string; user_id: string | null; anon_id: string | null };
       errorResponse: null;
     }
   | {
-      db: ReturnType<typeof createServerSupabase>;
+      db: SupabaseClient;
       userId: string | null;
       anonId: string | null;
       chat: null;
@@ -33,7 +35,9 @@ export async function requireChatAccess(
   chatId: string
 ): Promise<ChatAccessResult> {
   const { userId, anonId } = await getAuthContext();
-  const db = createServerSupabase();
+  const db = userId
+    ? await createAuthServerClient()
+    : createServerSupabase();
 
   const { data: chat, error } = await db
     .from("chats")

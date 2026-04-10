@@ -1,14 +1,6 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
-let realtimeClient: SupabaseClient | null = null;
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseBrowser } from "./supabase-browser";
 
 export function getRealtimeClient(): SupabaseClient {
-  if (realtimeClient) return realtimeClient;
-
-  realtimeClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { realtime: { params: { eventsPerSecond: 10 } } }
-  );
-  return realtimeClient;
+  return getSupabaseBrowser();
 }
