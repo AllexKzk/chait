@@ -8,7 +8,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { DocumentList } from "@/components/chat/document-list";
 import { useMessages } from "@/hooks/use-messages";
 import { useChatCompletion } from "@/hooks/use-chat-completion";
-import { useUploadDocument } from "@/hooks/use-documents";
+import { useDocuments, useUploadDocument } from "@/hooks/use-documents";
 import type { Message } from "@/types";
 
 interface ChatAreaProps {
@@ -19,10 +19,12 @@ export function ChatArea({ chatId }: ChatAreaProps) {
   const { data: messages = [], isLoading } = useMessages(chatId);
   const { streamingContent, streamingReasoning, isStreaming, send } =
     useChatCompletion(chatId);
+  const { data: docs = [] } = useDocuments(chatId);
   const uploadDoc = useUploadDocument(chatId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingPromptHandledRef = useRef(false);
+  const canAttach = docs.length === 0 && !uploadDoc.isPending;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,10 +58,16 @@ export function ChatArea({ chatId }: ChatAreaProps) {
   };
 
   const handleAttach = () => {
+    if (!canAttach) return;
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canAttach) {
+      e.target.value = "";
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (file) {
       uploadDoc.mutate(file);
@@ -69,7 +77,6 @@ export function ChatArea({ chatId }: ChatAreaProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <DocumentList chatId={chatId} />
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
           {isLoading && (
@@ -94,11 +101,13 @@ export function ChatArea({ chatId }: ChatAreaProps) {
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
-      <div className="max-w-3xl mx-auto w-full">
+      <div className="mx-auto w-full">
         <ChatInput
+          chatId={chatId}
           onSend={handleSend}
           onAttach={handleAttach}
           disabled={isStreaming}
+          canAttach={canAttach}
           showAttach
         />
       </div>

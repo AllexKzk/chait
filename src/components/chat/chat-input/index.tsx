@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Send, Paperclip } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ModelSelector } from "@/components/chat/model-selector";
@@ -10,18 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useAnonUsage } from "@/hooks/use-anon-usage";
 import { DEFAULT_MODEL } from "@/lib/openrouter";
+import { DocumentList } from "../document-list";
 
 interface ChatInputProps {
   onSend: (message: string, model: string) => void;
   onAttach?: () => void;
   disabled?: boolean;
   showAttach?: boolean;
+  chatId: string;
+  canAttach?: boolean;
 }
 
 export function ChatInput({
   onSend,
   onAttach,
   disabled = false,
+  chatId,
+  canAttach = true,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [model, setModel] = useState(DEFAULT_MODEL);
@@ -51,20 +55,23 @@ export function ChatInput({
   };
 
   return (
-    <div className="p-4 flex flex-col gap-2">
+    <div className="m-3 p-4 flex flex-col gap-2 rounded-2xl border">
       <div className="flex justify-between">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="xs"
             onClick={onAttach}
-            disabled={disabled}
-            className="h-full"
+            disabled={disabled || !onAttach || !canAttach}
+            className="h-full rounded-lg"
           >
             <Paperclip />
-            <span className="text-muted-foreground">Attach file</span>
+            <span className="text-muted-foreground">
+              {canAttach ? "Attach file" : "1 file max"}
+            </span>
           </Button>
           <ModelSelector value={model} onChange={setModel} />
+          <DocumentList chatId={chatId} />
         </div>
         <div className="flex items-center gap-2">
           {showAnonUsage && remainingMessages !== null && (

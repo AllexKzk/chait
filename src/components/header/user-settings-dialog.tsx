@@ -87,10 +87,10 @@ export function UserSettingsDialog({
               </div>
               <Button
                 variant="outline"
-                className="w-full justify-start gap-2"
+                className="w-full gap-2"
                 onClick={handleSignOut}
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-5 w-5" />
                 Sign out
               </Button>
             </>
@@ -104,7 +104,7 @@ export function UserSettingsDialog({
                   window.location.href = "/auth?type=signup";
                 }}
               >
-                <UserPlus className="h-4 w-4" />
+                <UserPlus className="h-5 w-5" />
                 Sign up
               </Button>
               <div className="flex gap-5">
@@ -120,7 +120,7 @@ export function UserSettingsDialog({
                   window.location.href = "/auth";
                 }}
               >
-                <LogIn className="h-4 w-4" />
+                <LogIn className="h-5 w-5" />
                 Sign in
               </Button>
             </div>

@@ -51,6 +51,19 @@ export async function POST(
     }
 
     const db = createServerSupabase();
+    const { count, error: countError } = await db
+      .from("documents")
+      .select("id", { count: "exact", head: true })
+      .eq("chat_id", chatId);
+
+    if (countError) throw countError;
+
+    if ((count ?? 0) >= 1) {
+      return NextResponse.json(
+        { error: "Only one file can be attached at a time" },
+        { status: 400 }
+      );
+    }
 
     const { data: doc, error: docError } = await db
       .from("documents")

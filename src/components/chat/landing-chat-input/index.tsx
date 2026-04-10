@@ -31,17 +31,21 @@ export function LandingChatInput({ chatId }: LandingChatInputProps) {
   };
 
   return (
-    <div className="w-full px-4 pb-4 pt-2">
-      <div className="mx-auto max-w-3xl overflow-hidden bg-background/90 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/75">
+    <div className="w-full">
+      <div className="mx-auto overflow-hidden bg-background/90 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/75">
         <div
           className={[
-            "transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] rounded-2xl border",
+            "transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
             isVisible
               ? "translate-y-0 opacity-100"
               : "translate-y-16 opacity-0 pointer-events-none",
           ].join(" ")}
         >
-          <ChatInput onSend={handleSend} disabled={isNavigating} />
+          <ChatInput
+            chatId={chatId}
+            onSend={handleSend}
+            disabled={isNavigating}
+          />
         </div>
       </div>
     </div>
