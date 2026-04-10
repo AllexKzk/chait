@@ -68,12 +68,12 @@ export function DocumentList({ chatId }: { chatId: string }) {
   if (docs.length === 0) return null;
 
   return (
-    <div className="h-8 flex flex-wrap gap-1.5">
+    <div className="flex min-h-8 flex-wrap gap-1.5">
       {docs.map((doc: Document) => (
         <div
           key={doc.id}
           className={cn(
-            "flex h-8 items-center gap-1 rounded-lg bg-muted px-2 py-1 text-xs transition-all duration-200 ease-out",
+            "flex h-8 max-w-full items-center gap-1 rounded-lg bg-muted px-2 py-1 text-xs transition-all duration-200 ease-out",
             !isVisible && "translate-y-2 scale-95 opacity-0",
             deletingDocId === doc.id && "translate-y-2 scale-95 opacity-0",
           )}

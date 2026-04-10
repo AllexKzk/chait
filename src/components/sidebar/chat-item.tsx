@@ -14,7 +14,10 @@ export function ChatItem({ chat, isActive, onSelect }: ChatItemProps) {
   return (
     <Button
       variant="outline"
-      className={cn("w-[112px]", isActive && "bg-muted dark:bg-input/50")}
+      className={cn(
+        "w-full justify-start px-3",
+        isActive && "bg-muted dark:bg-input/50",
+      )}
       onClick={() => onSelect(chat.id)}
     >
       <span className="truncate">{chat.title}</span>

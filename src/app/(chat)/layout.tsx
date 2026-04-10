@@ -9,10 +9,10 @@ export default function ChatLayout({
 }) {
   return (
     <RealtimeProvider>
-      <div className="flex h-screen">
+      <div className="flex h-dvh overflow-hidden">
         <Header />
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <Sidebar className="hidden md:flex" />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <main className="flex flex-1 flex-col overflow-hidden">
             {children}
           </main>

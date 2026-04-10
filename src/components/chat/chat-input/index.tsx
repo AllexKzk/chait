@@ -88,29 +88,35 @@ export function ChatInput({
   };
 
   return (
-    <div className="mb-3 p-4 flex flex-col gap-2 rounded-2xl border  max-w-4xl mx-auto">
-      <div className="flex justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={onAttach}
-            disabled={disabled || !onAttach || !canAttach}
-            className="h-full rounded-lg"
-          >
-            <Paperclip />
-            <span className="text-muted-foreground">
-              {canAttach ? "Attach file or image" : "1 attachment max"}
-            </span>
-          </Button>
-          <ModelSelector value={model} onChange={setModel} />
+    <div className="mx-auto mb-3 flex max-w-4xl flex-col gap-3 rounded-2xl border p-3 sm:p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={onAttach}
+              disabled={disabled || !onAttach || !canAttach}
+              className="h-8 justify-start rounded-lg min-[420px]:h-full"
+            >
+              <Paperclip />
+              <span className="truncate text-muted-foreground">
+                {canAttach ? "Attach file or image" : "1 attachment max"}
+              </span>
+            </Button>
+            <ModelSelector
+              value={model}
+              onChange={setModel}
+              className="h-8 w-full min-[420px]:w-auto"
+            />
+          </div>
           <DocumentList chatId={chatId} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
           {showAnonUsage && remainingMessages !== null && (
             <Badge
               variant="outline"
-              className="rounded-sm h-full text-muted-foreground"
+              className="h-8 rounded-sm text-muted-foreground"
             >
               {remainingMessages} free messages left
             </Badge>
@@ -120,6 +126,7 @@ export function ChatInput({
             variant="outline"
             onClick={handleSubmit}
             disabled={disabled || !value.trim() || remainingMessages === 0}
+            className="shrink-0"
           >
             <Send className="h-4 w-4" />
           </Button>

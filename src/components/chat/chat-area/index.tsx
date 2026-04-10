@@ -133,12 +133,12 @@ export function ChatArea({ chatId }: ChatAreaProps) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <ScrollArea className="min-h-0 flex-1">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 p-4">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 p-3 sm:p-4">
           {!isLoading && (
             <div
               className={cn(
-                "flex justify-center px-4 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                isHeroDocked ? "pb-4 pt-0" : "pb-12 pt-[22vh]",
+                "flex justify-center px-2 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-4",
+                isHeroDocked ? "pb-4 pt-0" : "pb-10 pt-[18vh] sm:pb-12 sm:pt-[22vh]",
               )}
             >
               <ChatHero className="w-full" />
@@ -173,7 +173,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
         </div>
       </ScrollArea>
       {lastError && (
-        <div className="mx-auto mb-3 w-full max-w-4xl px-4">
+        <div className="mx-auto mb-3 w-full max-w-4xl px-3 sm:px-4">
           <div className="flex items-start gap-3 rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div className="min-w-0 flex-1">
@@ -216,7 +216,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
         onChange={handleFileChange}
       />
       {uploadToast && (
-        <div className="pointer-events-none fixed bottom-6 right-6 z-50 max-w-sm">
+        <div className="pointer-events-none fixed right-4 bottom-4 left-4 z-50 sm:right-6 sm:bottom-6 sm:left-auto sm:max-w-sm">
           <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-destructive/25 bg-background px-4 py-3 shadow-lg">
             <Upload className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div className="min-w-0">

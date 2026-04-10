@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogIn, LogOut, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
+import { UserSettingsFooterLinks } from "./footer-links";
 
 const STORAGE_KEY = "openrouter-api-key";
 
@@ -74,8 +75,7 @@ export function UserSettingsDialog({
             }}
           />
           <p className="text-xs text-muted-foreground">
-            Stored locally in your browser and sent through our server proxy only
-            when you request a model response.
+            Stored only on your browser
           </p>
           <Button onClick={handleSave}>{saved ? "Saved!" : "Save key"}</Button>
         </div>
@@ -121,6 +121,7 @@ export function UserSettingsDialog({
               </Button>
             </div>
           )}
+          <UserSettingsFooterLinks />
         </div>
       </DialogContent>
     </Dialog>

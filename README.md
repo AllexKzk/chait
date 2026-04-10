@@ -68,6 +68,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Users provide their own OpenRouter API key via the settings button in the sidebar. Keys are stored in localStorage only and never persisted server-side.
 
-## Deploy
+## Growth Points
 
-Deploy to Vercel with the same environment variables configured in the project settings.
+- Chats & messages lazy loading
+- Pin files to the messages
+- Markdow extension: copying code blocks, langs highlights
+- Multi-lang support (i18n)
+- Support for image/graphs generation

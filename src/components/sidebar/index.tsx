@@ -13,7 +13,13 @@ type AnimatedChat = {
   state: "idle" | "entering" | "exiting";
 };
 
-export function Sidebar() {
+export function Sidebar({
+  className,
+  onNavigate,
+}: {
+  className?: string;
+  onNavigate?: () => void;
+}) {
   const params = useParams();
   const activeChatId = params?.id as string | undefined;
   const router = useRouter();
@@ -25,6 +31,7 @@ export function Sidebar() {
 
   const handleSelect = (chatId: string) => {
     router.push(`/c/${chatId}`);
+    onNavigate?.();
   };
 
   useLayoutEffect(() => {
@@ -102,21 +109,26 @@ export function Sidebar() {
   }, [chats, isFetched]);
 
   return (
-    <aside className="relative h-full pt-11 w-[124px]">
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col pl-3 pt-3">
+    <aside
+      className={cn(
+        "relative flex h-full min-h-0 w-[124px] flex-col pt-11",
+        className,
+      )}
+    >
+      <ScrollArea className="h-full min-h-0 flex-1">
+        <div className="flex flex-col gap-2 px-3 pt-3">
           {animatedChats.map(({ chat, state }) => (
             <div
               key={chat.id}
               className={cn(
                 "overflow-hidden transition-[max-height,margin] duration-200 ease-out",
                 state === "entering" &&
-                  (visibleChatId === chat.id ? "mb-2 max-h-8" : "mb-0 max-h-0"),
+                  (visibleChatId === chat.id ? "max-h-8" : "max-h-0"),
                 state === "exiting" &&
                   (visibleChatId === chat.id
-                    ? "mb-2 max-h-8"
-                    : "mb-0 max-h-0 delay-150"),
-                state === "idle" && "mb-2 max-h-8 last:mb-0",
+                    ? "max-h-8"
+                    : "max-h-0 delay-150"),
+                state === "idle" && "max-h-8",
               )}
             >
               <div
