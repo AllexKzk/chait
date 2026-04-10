@@ -114,7 +114,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.md,.csv,.json"
+        accept=".txt,.md,.csv,.json,image/png,image/jpeg,image/jpg,image/webp,image/gif,image/svg+xml,image/bmp"
         className="hidden"
         onChange={handleFileChange}
       />

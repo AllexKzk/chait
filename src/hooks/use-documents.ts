@@ -3,6 +3,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Document } from "@/types";
 
+function isImageFile(file: File) {
+  return file.type.startsWith("image/");
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Failed to read image"));
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function fetchDocuments(chatId: string): Promise<Document[]> {
   const res = await fetch(`/api/chats/${chatId}/documents`);
   if (!res.ok) throw new Error("Failed to fetch documents");
@@ -12,6 +34,11 @@ async function fetchDocuments(chatId: string): Promise<Document[]> {
 async function uploadDocument(chatId: string, file: File): Promise<Document> {
   const form = new FormData();
   form.append("file", file);
+
+  if (isImageFile(file)) {
+    form.append("imageDataUrl", await readFileAsDataUrl(file));
+  }
+
   const res = await fetch(`/api/chats/${chatId}/documents`, {
     method: "POST",
     body: form,

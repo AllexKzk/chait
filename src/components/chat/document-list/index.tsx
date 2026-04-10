@@ -1,11 +1,17 @@
 "use client";
 
-import { FileText, X } from "lucide-react";
+import { FileImage, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocuments, useDeleteDocument } from "@/hooks/use-documents";
 import type { Document } from "@/types";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
+
+const IMAGE_FILE_RE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
+
+function isImageDocument(doc: Document) {
+  return IMAGE_FILE_RE.test(doc.name);
+}
 
 export function DocumentList({ chatId }: { chatId: string }) {
   const { data: docs = [] } = useDocuments(chatId);
@@ -72,7 +78,11 @@ export function DocumentList({ chatId }: { chatId: string }) {
             deletingDocId === doc.id && "translate-y-2 scale-95 opacity-0",
           )}
         >
-          <FileText className="h-3 w-3" />
+          {isImageDocument(doc) ? (
+            <FileImage className="h-3 w-3 shrink-0" />
+          ) : (
+            <FileText className="h-3 w-3 shrink-0" />
+          )}
           <span className="max-w-[120px] truncate">{doc.name}</span>
           <Button
             variant="ghost"

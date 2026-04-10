@@ -18,10 +18,18 @@ const completionSchema = z.object({
   model: z.string().optional(),
 });
 
+type MessageContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 interface HistoryMessage {
   role: "user" | "assistant" | "system";
-  content: string;
+  content: string | MessageContentPart[];
   reasoning_details?: { type: string; content: string }[];
+}
+
+function isImageAttachment(content: string | null) {
+  return typeof content === "string" && content.startsWith("data:image/");
 }
 
 export async function POST(
@@ -134,16 +142,24 @@ export async function POST(
       return msg;
     });
 
+    const { data: attachedDocs } = await db
+      .from("documents")
+      .select("id, name, content")
+      .eq("chat_id", chatId);
+
+    const textDocIds =
+      attachedDocs
+        ?.filter((doc) => !isImageAttachment(doc.content))
+        .map((doc) => doc.id) ?? [];
+
     // RAG context
-    const { data: chunks } = await db
-      .from("document_chunks")
-      .select("content, document_id")
-      .in(
-        "document_id",
-        (
-          await db.from("documents").select("id").eq("chat_id", chatId)
-        ).data?.map((d) => d.id) ?? []
-      );
+    const { data: chunks } =
+      textDocIds.length > 0
+        ? await db
+            .from("document_chunks")
+            .select("content, document_id")
+            .in("document_id", textDocIds)
+        : { data: [] as { content: string; document_id: string }[] };
 
     const systemParts: string[] = ["You are a helpful assistant."];
 
@@ -155,11 +171,29 @@ export async function POST(
     }
 
     // Build the OpenRouter request body
+    const imageMessages: HistoryMessage[] =
+      attachedDocs
+        ?.filter((doc) => isImageAttachment(doc.content))
+        .map((doc) => ({
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `The user attached an image named "${doc.name}". Use it as conversation context.`,
+            },
+            {
+              type: "image_url",
+              image_url: { url: doc.content! },
+            },
+          ],
+        })) ?? [];
+
     const requestBody: Record<string, unknown> = {
       model,
       stream: true,
       messages: [
         { role: "system", content: systemParts.join("\n\n") },
+        ...imageMessages,
         ...messages,
       ],
     };

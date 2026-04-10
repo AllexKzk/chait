@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { chunkText } from "@/lib/chunking";
 
+function isImageFile(file: File) {
+  return file.type.startsWith("image/");
+}
+
+function isImageDataUrl(value: string) {
+  return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value);
+}
+
+async function readUploadContent(file: File) {
+  if (!isImageFile(file)) {
+    return {
+      content: await file.text(),
+      isImage: false,
+    };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return {
+    content: `data:${file.type};base64,${buffer.toString("base64")}`,
+    isImage: true,
+  };
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -35,15 +58,35 @@ export async function POST(
   try {
     const { id: chatId } = await params;
     const formData = await req.formData();
+    const imageDataUrl = formData.get("imageDataUrl");
     const file = formData.get("file") as File | null;
 
-    if (!file) {
+    const upload =
+      typeof imageDataUrl === "string"
+        ? {
+            name: file?.name ?? "image",
+            content: imageDataUrl,
+            isImage: true,
+          }
+        : file
+          ? {
+              name: file.name,
+              ...(await readUploadContent(file)),
+            }
+          : null;
+
+    if (!upload) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const text = await file.text();
+    if (upload.isImage && !isImageDataUrl(upload.content)) {
+      return NextResponse.json(
+        { error: "Invalid image payload" },
+        { status: 400 }
+      );
+    }
 
-    if (!text.trim()) {
+    if (!upload.content.trim()) {
       return NextResponse.json(
         { error: "File is empty or could not be read" },
         { status: 400 }
@@ -69,15 +112,15 @@ export async function POST(
       .from("documents")
       .insert({
         chat_id: chatId,
-        name: file.name,
-        content: text,
+        name: upload.name,
+        content: upload.content,
       })
       .select()
       .single();
 
     if (docError) throw docError;
 
-    const chunks = chunkText(text);
+    const chunks = upload.isImage ? [] : chunkText(upload.content);
     const chunkRows = chunks.map((content, i) => ({
       document_id: doc.id,
       chunk_index: i,

@@ -67,7 +67,7 @@ export function ChatInput({
           >
             <Paperclip />
             <span className="text-muted-foreground">
-              {canAttach ? "Attach file" : "1 file max"}
+              {canAttach ? "Attach file or image" : "1 attachment max"}
             </span>
           </Button>
           <ModelSelector value={model} onChange={setModel} />
