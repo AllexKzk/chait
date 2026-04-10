@@ -11,6 +11,10 @@ export async function GET() {
       return NextResponse.json({ used: 0, limit: FREE_LIMIT, unlimited: true });
     }
 
+    if (!userId) {
+      return NextResponse.json({ used: 0, limit: FREE_LIMIT, unlimited: false });
+    }
+
     const db = isRegistered
       ? await createAuthServerClient()
       : createServerSupabase();

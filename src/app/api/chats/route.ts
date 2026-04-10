@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
-import { getAuthContext } from "@/lib/auth";
+import { ensureAuthContext, getAuthContext } from "@/lib/auth";
 import { createAuthServerClient } from "@/lib/supabase-auth-server";
 
 export async function GET() {
@@ -19,6 +19,10 @@ export async function GET() {
 
       if (error) throw error;
       return NextResponse.json(data);
+    }
+
+    if (!userId) {
+      return NextResponse.json([]);
     }
 
     const { data, error } = await db
@@ -42,7 +46,7 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const { userId, isRegistered } = await getAuthContext();
+    const { userId, isRegistered } = await ensureAuthContext();
     const db = isRegistered
       ? await createAuthServerClient()
       : createServerSupabase();

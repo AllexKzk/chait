@@ -7,14 +7,14 @@ import { createAuthServerClient } from "@/lib/supabase-auth-server";
 type ChatAccessResult =
   | {
       db: SupabaseClient;
-      userId: string;
+      userId: string | null;
       isRegistered: boolean;
       chat: { id: string; user_id: string };
       errorResponse: null;
     }
   | {
       db: SupabaseClient;
-      userId: string;
+      userId: string | null;
       isRegistered: boolean;
       chat: null;
       errorResponse: NextResponse;

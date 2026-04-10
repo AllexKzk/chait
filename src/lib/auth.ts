@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createServerSupabase } from "./supabase-server";
 
 export interface AuthContext {
-  userId: string;
+  userId: string | null;
   isRegistered: boolean;
 }
 
@@ -193,9 +193,8 @@ export async function clearGuestUserId() {
   });
 }
 
-export async function getAuthContext(): Promise<AuthContext> {
+async function getRegisteredAuthContext() {
   const cookieStore = await cookies();
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -219,26 +218,55 @@ export async function getAuthContext(): Promise<AuthContext> {
     return { userId, isRegistered: true };
   }
 
+  return null;
+}
+
+async function getExistingGuestAuthContext(): Promise<AuthContext> {
   const existingGuestUserId = await getStoredGuestUserId();
-  if (existingGuestUserId) {
-    const db = createServerSupabase();
-    const { data: existingGuestUser, error } = await db
-      .from("users")
-      .select("id, is_registered")
-      .eq("id", existingGuestUserId)
-      .maybeSingle();
+  if (!existingGuestUserId) {
+    return { userId: null, isRegistered: false };
+  }
 
-    if (error) {
-      throw error;
-    }
+  const db = createServerSupabase();
+  const { data: existingGuestUser, error } = await db
+    .from("users")
+    .select("id, is_registered")
+    .eq("id", existingGuestUserId)
+    .maybeSingle();
 
-    if (existingGuestUser && !existingGuestUser.is_registered) {
-      await persistGuestUserId(existingGuestUser.id);
-      return {
-        userId: existingGuestUser.id,
-        isRegistered: false,
-      };
-    }
+  if (error) {
+    throw error;
+  }
+
+  if (existingGuestUser && !existingGuestUser.is_registered) {
+    return {
+      userId: existingGuestUser.id,
+      isRegistered: false,
+    };
+  }
+
+  return { userId: null, isRegistered: false };
+}
+
+export async function getAuthContext(): Promise<AuthContext> {
+  const registeredAuthContext = await getRegisteredAuthContext();
+  if (registeredAuthContext) {
+    return registeredAuthContext;
+  }
+
+  return getExistingGuestAuthContext();
+}
+
+export async function ensureAuthContext(): Promise<AuthContext> {
+  const registeredAuthContext = await getRegisteredAuthContext();
+  if (registeredAuthContext) {
+    return registeredAuthContext;
+  }
+
+  const guestAuthContext = await getExistingGuestAuthContext();
+  if (guestAuthContext.userId) {
+    await persistGuestUserId(guestAuthContext.userId);
+    return guestAuthContext;
   }
 
   const db = createServerSupabase();

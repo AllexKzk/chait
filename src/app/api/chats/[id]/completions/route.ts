@@ -134,6 +134,16 @@ export async function POST(
 
     const { db, userId, isRegistered } = access;
 
+    if (!userId) {
+      return Response.json(
+        {
+          error: "Not authenticated",
+          deliveryStatus: "not_delivered",
+        },
+        { status: 401 }
+      );
+    }
+
     if (!isRegistered) {
       const quotaAccepted = await consumeUserQuota(db, userId);
       if (!quotaAccepted) {
