@@ -5,6 +5,7 @@ Fullstack clone of ChatGPT-like chatbot UI. Created as Test Assigment for [Paral
 ## Demo
 
 <video src="https://youtu.be/TGSn_ehNPdk" width="560" height="315" controls></video>
+[![demo](https://img.youtube.com/vi/TGSn_ehNPdk/0.jpg)](https://youtu.be/TGSn_ehNPdk)
 
 ## Features
 
