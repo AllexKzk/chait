@@ -102,7 +102,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <ScrollArea className="min-h-0 flex-1">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 p-4">
           {!isLoading && (
             <div
               className={cn(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { requireChatAccess } from "@/lib/chat-access";
 
 const createMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -13,7 +13,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = createServerSupabase();
+    const { db, errorResponse } = await requireChatAccess(id);
+
+    if (errorResponse) {
+      return errorResponse;
+    }
 
     const { data, error } = await db
       .from("messages")
@@ -39,6 +43,12 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const { db, errorResponse } = await requireChatAccess(id);
+
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const body = await req.json();
     const parsed = createMessageSchema.safeParse(body);
 
@@ -49,7 +59,6 @@ export async function POST(
       );
     }
 
-    const db = createServerSupabase();
     const { data, error } = await db
       .from("messages")
       .insert({

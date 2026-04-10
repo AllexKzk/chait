@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { createServerSupabase } from "@/lib/supabase-server";
-import { getAuthContext, ensureAnonId } from "@/lib/auth";
+import { ensureAnonId } from "@/lib/auth";
+import { requireChatAccess } from "@/lib/chat-access";
 import {
   FREE_LIMIT,
   getAnonUsageCount,
@@ -56,28 +56,14 @@ export async function POST(
       );
     }
 
-    const { userId } = await getAuthContext();
+    const access = await requireChatAccess(chatId);
+
+    if (access.errorResponse) {
+      return access.errorResponse;
+    }
+
+    const { db, userId } = access;
     const anonId = userId ? null : await ensureAnonId();
-
-    const db = createServerSupabase();
-
-    const { data: chat } = await db
-      .from("chats")
-      .select("id, user_id, anon_id")
-      .eq("id", chatId)
-      .single();
-
-    if (!chat) {
-      return Response.json({ error: "Chat not found" }, { status: 404 });
-    }
-
-    const isOwner =
-      (userId && chat.user_id === userId) ||
-      (!userId && anonId && chat.anon_id === anonId);
-
-    if (!isOwner) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     if (!userId && anonId) {
       const usageCount = await getAnonUsageCount(db, anonId);

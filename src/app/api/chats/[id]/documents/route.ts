@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { requireChatAccess } from "@/lib/chat-access";
 import { chunkText } from "@/lib/chunking";
 
 function isImageFile(file: File) {
@@ -31,7 +31,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = createServerSupabase();
+    const { db, errorResponse } = await requireChatAccess(id);
+
+    if (errorResponse) {
+      return errorResponse;
+    }
 
     const { data, error } = await db
       .from("documents")
@@ -57,6 +61,12 @@ export async function POST(
 ) {
   try {
     const { id: chatId } = await params;
+    const { db, errorResponse } = await requireChatAccess(chatId);
+
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const formData = await req.formData();
     const imageDataUrl = formData.get("imageDataUrl");
     const file = formData.get("file") as File | null;
@@ -93,7 +103,6 @@ export async function POST(
       );
     }
 
-    const db = createServerSupabase();
     const { count, error: countError } = await db
       .from("documents")
       .select("id", { count: "exact", head: true })

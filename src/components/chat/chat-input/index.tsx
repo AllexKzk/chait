@@ -55,7 +55,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="mb-3 p-4 flex flex-col gap-2 rounded-2xl border  max-w-3xl mx-auto">
+    <div className="mb-3 p-4 flex flex-col gap-2 rounded-2xl border  max-w-4xl mx-auto">
       <div className="flex justify-between">
         <div className="flex items-center gap-2">
           <Button
