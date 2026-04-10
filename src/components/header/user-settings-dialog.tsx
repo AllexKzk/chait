@@ -62,38 +62,33 @@ export function UserSettingsDialog({
           </DialogHeader>
         )}
 
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">OpenRouter API Key</label>
+          <Input
+            type="password"
+            placeholder="sk-or-..."
+            value={key}
+            onChange={(e) => {
+              setKey(e.target.value);
+              setSaved(false);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            Stored in your browser only. Never sent to our server.
+          </p>
+          <Button onClick={handleSave}>{saved ? "Saved!" : "Save key"}</Button>
+        </div>
+
         <div className="flex flex-col gap-4">
           {isAuthenticated ? (
-            <>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">
-                  OpenRouter API Key
-                </label>
-                <Input
-                  type="password"
-                  placeholder="sk-or-..."
-                  value={key}
-                  onChange={(e) => {
-                    setKey(e.target.value);
-                    setSaved(false);
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Stored in your browser only. Never sent to our server.
-                </p>
-                <Button onClick={handleSave} size="sm">
-                  {saved ? "Saved!" : "Save key"}
-                </Button>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-5 w-5" />
-                Sign out
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-5 w-5" />
+              Sign out
+            </Button>
           ) : (
             <div className="flex flex-col gap-2">
               <Button

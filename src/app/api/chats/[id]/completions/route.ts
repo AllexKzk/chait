@@ -28,6 +28,39 @@ interface HistoryMessage {
   reasoning_details?: { type: string; content: string }[];
 }
 
+function extractProviderErrorDetails(rawError: string) {
+  const trimmed = rawError.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      error?: string | { message?: string };
+      message?: string;
+      detail?: string;
+    };
+
+    if (typeof parsed.error === "string") {
+      return parsed.error;
+    }
+
+    if (parsed.error && typeof parsed.error.message === "string") {
+      return parsed.error.message;
+    }
+
+    if (typeof parsed.message === "string") {
+      return parsed.message;
+    }
+
+    if (typeof parsed.detail === "string") {
+      return parsed.detail;
+    }
+  } catch {
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
 function isImageAttachment(content: string | null) {
   return typeof content === "string" && content.startsWith("data:image/");
 }
@@ -36,13 +69,18 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let userMessageInserted = false;
+
   try {
     const { id: chatId } = await params;
     const llmKey = req.headers.get("x-llm-key");
 
     if (!llmKey) {
       return Response.json(
-        { error: "Missing OpenRouter API key" },
+        {
+          error: "Missing OpenRouter API key",
+          deliveryStatus: "not_delivered",
+        },
         { status: 401 }
       );
     }
@@ -51,7 +89,11 @@ export async function POST(
     const parsed = completionSchema.safeParse(body);
     if (!parsed.success) {
       return Response.json(
-        { error: "Invalid input", details: parsed.error.flatten() },
+        {
+          error: "Invalid input",
+          details: parsed.error.flatten(),
+          deliveryStatus: "not_delivered",
+        },
         { status: 400 }
       );
     }
@@ -73,17 +115,22 @@ export async function POST(
           {
             error:
               "Free message limit reached. Please sign in to continue.",
+            deliveryStatus: "not_delivered",
           },
           { status: 403 }
         );
       }
     }
 
-    await db.from("messages").insert({
+    const { error: insertError } = await db.from("messages").insert({
       chat_id: chatId,
       role: "user",
       content: parsed.data.content,
     });
+    if (insertError) {
+      throw insertError;
+    }
+    userMessageInserted = true;
 
     // Increment anonymous usage counter
     if (!userId && anonId) {
@@ -202,7 +249,11 @@ export async function POST(
       const errText = await openRouterRes.text();
       console.error("OpenRouter error:", errText);
       return Response.json(
-        { error: "LLM request failed", details: errText },
+        {
+          error: "LLM request failed",
+          details: extractProviderErrorDetails(errText),
+          deliveryStatus: "delivered",
+        },
         { status: 502 }
       );
     }
@@ -210,7 +261,11 @@ export async function POST(
     const reader = openRouterRes.body?.getReader();
     if (!reader) {
       return Response.json(
-        { error: "No stream from LLM" },
+        {
+          error: "No stream from LLM",
+          details: "The provider accepted the request but did not return a stream.",
+          deliveryStatus: "delivered",
+        },
         { status: 502 }
       );
     }
@@ -284,8 +339,14 @@ export async function POST(
   } catch (err) {
     console.error("POST /api/chats/[id]/completions error:", err);
     return Response.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        error: userMessageInserted
+          ? "LLM request failed"
+          : "Internal server error",
+        details: err instanceof Error ? err.message : undefined,
+        deliveryStatus: userMessageInserted ? "delivered" : "not_delivered",
+      },
+      { status: userMessageInserted ? 502 : 500 }
     );
   }
 }
