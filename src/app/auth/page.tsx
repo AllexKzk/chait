@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { ArrowLeft } from "lucide-react";
 
 type Mode = "signin" | "signup";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("signin");
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<Mode>(
+    (searchParams.get("type") as Mode) || "signin",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,7 +68,15 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background">
+    <main className="flex min-h-screen items-center justify-center bg-background relative">
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-3 left-3"
+        onClick={() => router.push("/")}
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
       <div className="w-full max-w-sm flex flex-col gap-6 p-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold">
@@ -100,48 +112,32 @@ export default function LoginPage() {
           <Button type="submit" size="lg" disabled={loading}>
             {loading ? "Loading..." : mode === "signin" ? "Sign in" : "Sign up"}
           </Button>
-        </form>
-
-        <div className="text-center text-sm">
           {mode === "signin" ? (
-            <p>
-              Don&apos;t have an account?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("signup");
-                  setError(null);
-                  setSuccess(null);
-                }}
-                className="text-primary hover:underline"
-              >
-                Sign up
-              </button>
-            </p>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setMode("signup");
+                setError(null);
+                setSuccess(null);
+              }}
+              className="w-full"
+            >
+              Sign up
+            </Button>
           ) : (
-            <p>
-              Already have an account?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("signin");
-                  setError(null);
-                  setSuccess(null);
-                }}
-                className="text-primary hover:underline"
-              >
-                Sign in
-              </button>
-            </p>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setMode("signin");
+                setError(null);
+                setSuccess(null);
+              }}
+              className="w-full"
+            >
+              Sign in
+            </Button>
           )}
-        </div>
-
-        <a
-          href="/"
-          className="text-center text-sm text-muted-foreground hover:underline"
-        >
-          Continue without signing in
-        </a>
+        </form>
       </div>
     </main>
   );
