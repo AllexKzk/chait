@@ -1,6 +1,10 @@
-# Chatbot Fullstack
+# CHAIT
 
-AI chatbot with multi-model support via OpenRouter, built with Next.js, Supabase, and TanStack Query.
+Fullstack clone of ChatGPT-like chatbot UI. Created as Test Assigment for [Paralect](www.paralect.com).
+
+## Demo
+
+<video src="https://www.icloud.com/iclouddrive/0fadhf9lm14ONu15NyROYYvrQ#demo-ezgif.com-video-speed" width="560" height="315" controls></video>
 
 ## Features
 
@@ -17,9 +21,8 @@ AI chatbot with multi-model support via OpenRouter, built with Next.js, Supabase
 - **Framework:** Next.js 16 (App Router)
 - **Data Fetching:** TanStack Query
 - **Database:** Supabase (Postgres)
-- **Auth:** Supabase Auth (Google OAuth)
+- **Auth:** Supabase Auth
 - **LLM:** OpenRouter (multi-model)
-- **Streaming:** Server-Sent Events
 - **UI:** Shadcn + Tailwind CSS
 
 ## Setup
@@ -28,61 +31,41 @@ AI chatbot with multi-model support via OpenRouter, built with Next.js, Supabase
 
 - Node.js >= 20 (24 recommended, see `.nvmrc`)
 - Supabase project
-- Google OAuth credentials (configured in Supabase)
+- [OpenRouter](https://openrouter.ai/) key
 
 ### 1. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. Environment variables
 
-Copy `.env.local.example` to `.env.local` and fill in values:
+Copy `.env.example` to `.env.local` and fill in values:
 
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env.local
 ```
 
 ### 3. Database
 
-Run the SQL migration in your Supabase SQL Editor:
+Run the SQL migrations in your Supabase SQL Editor:
 
 ```bash
 # File: supabase/migration.sql
 ```
 
-### 4. Enable Realtime
-
-The migration enables Realtime for `chats` and `messages` tables automatically.
-
-### 5. Google OAuth
-
-Configure Google OAuth in Supabase Dashboard under Authentication > Providers > Google.  
-Set the callback URL to: `https://your-domain.com/api/auth/callback`
-
-### 6. Run
+### 4. Run
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 7. API Key
+### 5. API Key
 
 Users provide their own OpenRouter API key via the settings button in the sidebar. Keys are stored in localStorage only and never persisted server-side.
-
-## Architecture
-
-```
-Client → TanStack Query → Next.js API Routes → Supabase / OpenRouter
-```
-
-- Client never talks to the database directly
-- All business logic in API routes
-- Supabase Realtime used only for cross-tab sync
-- API keys are per-request, never stored on server
 
 ## Deploy
 
