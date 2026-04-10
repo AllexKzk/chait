@@ -46,7 +46,7 @@ export function useAuth() {
     const supabase = getSupabaseBrowser();
     await supabase.auth.signOut();
     queryClient.invalidateQueries({ queryKey: ["auth-user"] });
-    router.push("/login");
+    router.push("/auth");
   }, [queryClient, router]);
 
   return {

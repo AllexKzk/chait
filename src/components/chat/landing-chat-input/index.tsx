@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChatInput } from "@/components/chat/chat-input";
+import { useCreateChat } from "@/hooks/use-chats";
+import type { Chat } from "@/types";
 
-interface LandingChatInputProps {
-  chatId: string;
-}
-
-export function LandingChatInput({ chatId }: LandingChatInputProps) {
+export function LandingChatInput() {
   const router = useRouter();
+  const createChat = useCreateChat();
   const [isVisible, setIsVisible] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -22,17 +21,24 @@ export function LandingChatInput({ chatId }: LandingChatInputProps) {
   }, []);
 
   const handleSend = (message: string, model: string) => {
-    sessionStorage.setItem(
-      `pending-chat:${chatId}`,
-      JSON.stringify({ message, model }),
-    );
     setIsNavigating(true);
-    router.push(`/c/${chatId}`);
+    createChat.mutate(undefined, {
+      onSuccess: (chat: Chat) => {
+        sessionStorage.setItem(
+          `pending-chat:${chat.id}`,
+          JSON.stringify({ message, model }),
+        );
+        router.push(`/c/${chat.id}`);
+      },
+      onError: () => {
+        setIsNavigating(false);
+      },
+    });
   };
 
   return (
     <div className="w-full">
-      <div className="mx-auto overflow-hidden bg-background/90 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/75">
+      <div className="mx-auto overflow-hidden bg-background/90">
         <div
           className={[
             "transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
@@ -42,9 +48,10 @@ export function LandingChatInput({ chatId }: LandingChatInputProps) {
           ].join(" ")}
         >
           <ChatInput
-            chatId={chatId}
+            chatId="landing"
             onSend={handleSend}
-            disabled={isNavigating}
+            disabled={isNavigating || createChat.isPending}
+            showAttach={false}
           />
         </div>
       </div>

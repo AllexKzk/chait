@@ -25,6 +25,8 @@ export function useChatCompletion(chatId: string) {
       setStreamingContent("");
       setStreamingReasoning("");
 
+      // Prevent an older in-flight fetch from overwriting the optimistic user message.
+      await queryClient.cancelQueries({ queryKey: ["messages", chatId] });
       queryClient.setQueryData<Message[]>(["messages", chatId], (old = []) => [
         ...old,
         {

@@ -265,8 +265,6 @@ export async function POST(
             }
           }
         } finally {
-          controller.close();
-
           if (fullContent) {
             const metadata =
               fullReasoning
@@ -284,6 +282,8 @@ export async function POST(
               metadata,
             });
           }
+
+          controller.close();
         }
       },
     });

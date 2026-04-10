@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createServerSupabase } from "./supabase-server";
 import { v4 as uuid } from "uuid";
+import { clearFallbackAnonUsage } from "./anon-usage";
 
 export interface AuthContext {
   userId: string | null;
@@ -69,6 +70,7 @@ export async function clearAnonId() {
     ...getAnonCookieOptions(),
     maxAge: 0,
   });
+  await clearFallbackAnonUsage();
 }
 
 export async function getAuthContext(): Promise<AuthContext> {

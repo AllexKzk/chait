@@ -44,7 +44,7 @@ export function Sidebar() {
 
     const addedChat = chats.find((chat) => !previousChatIds.has(chat.id));
     const removedChat = previousChats.find(
-      (chat) => !currentChatIds.has(chat.id)
+      (chat) => !currentChatIds.has(chat.id),
     );
 
     previousChatsRef.current = chats;
@@ -58,7 +58,7 @@ export function Sidebar() {
         chats.map((chat) => ({
           chat,
           state: chat.id === addedChat.id ? "entering" : "idle",
-        }))
+        })),
       );
       setVisibleChatId(null);
 
@@ -78,7 +78,7 @@ export function Sidebar() {
         previousChats.map((chat) => ({
           chat,
           state: chat.id === removedChat.id ? "exiting" : "idle",
-        }))
+        })),
       );
       setVisibleChatId(removedChat.id);
 
@@ -102,7 +102,7 @@ export function Sidebar() {
   }, [chats, isFetched]);
 
   return (
-    <aside className="relative h-full pt-11">
+    <aside className="relative h-full pt-11 w-[124px]">
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col pl-3 pt-3">
           {animatedChats.map(({ chat, state }) => (
@@ -111,14 +111,12 @@ export function Sidebar() {
               className={cn(
                 "overflow-hidden transition-[max-height,margin] duration-200 ease-out",
                 state === "entering" &&
-                  (visibleChatId === chat.id
-                    ? "mb-2 max-h-8"
-                    : "mb-0 max-h-0"),
+                  (visibleChatId === chat.id ? "mb-2 max-h-8" : "mb-0 max-h-0"),
                 state === "exiting" &&
                   (visibleChatId === chat.id
                     ? "mb-2 max-h-8"
                     : "mb-0 max-h-0 delay-150"),
-                state === "idle" && "mb-2 max-h-8 last:mb-0"
+                state === "idle" && "mb-2 max-h-8 last:mb-0",
               )}
             >
               <div
@@ -131,7 +129,7 @@ export function Sidebar() {
                   state === "exiting" &&
                     (visibleChatId === chat.id
                       ? "translate-x-0 opacity-100"
-                      : "-translate-x-full opacity-0")
+                      : "-translate-x-full opacity-0"),
                 )}
               >
                 <ChatItem
