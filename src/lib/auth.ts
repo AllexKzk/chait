@@ -1,17 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createServerSupabase } from "./supabase-server";
-import { v4 as uuid } from "uuid";
-import { clearFallbackAnonUsage } from "./anon-usage";
 
 export interface AuthContext {
-  userId: string | null;
-  anonId: string | null;
+  userId: string;
+  isRegistered: boolean;
 }
 
-const ANON_COOKIE_NAME = "anon_id";
+const GUEST_USER_COOKIE_NAME = "guest_user_id";
+const LEGACY_ANON_COOKIE_NAME = "anon_id";
 
-function getAnonCookieOptions() {
+function getGuestUserCookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -20,10 +19,40 @@ function getAnonCookieOptions() {
   };
 }
 
-export async function syncUserAndMigrateAnonChat(
+async function getStoredGuestUserId() {
+  const cookieStore = await cookies();
+  return (
+    cookieStore.get(GUEST_USER_COOKIE_NAME)?.value ??
+    cookieStore.get(LEGACY_ANON_COOKIE_NAME)?.value ??
+    null
+  );
+}
+
+async function persistGuestUserId(userId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(GUEST_USER_COOKIE_NAME, userId, getGuestUserCookieOptions());
+  cookieStore.set(LEGACY_ANON_COOKIE_NAME, "", {
+    ...getGuestUserCookieOptions(),
+    maxAge: 0,
+  });
+}
+
+async function migrateGuestChatsToUser(guestUserId: string, userId: string) {
+  const db = createServerSupabase();
+  const { error } = await db
+    .from("chats")
+    .update({ user_id: userId })
+    .eq("user_id", guestUserId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function syncRegisteredUser(
   authUserId: string,
-  email: string,
-  anonId?: string | null,
+  email: string | null,
+  guestUserId?: string | null,
 ) {
   const db = createServerSupabase();
   const { data: existingUser, error: existingUserError } = await db
@@ -39,9 +68,77 @@ export async function syncUserAndMigrateAnonChat(
   let dbUser = existingUser;
 
   if (!dbUser) {
+    const { data: guestUser, error: guestUserError } = guestUserId
+      ? await db
+          .from("users")
+          .select("id, is_registered")
+          .eq("id", guestUserId)
+          .maybeSingle()
+      : { data: null, error: null };
+
+    if (guestUserError) {
+      throw guestUserError;
+    }
+
+    if (guestUser && !guestUser.is_registered) {
+      const result = await db
+        .from("users")
+        .update({
+          auth_user_id: authUserId,
+          email,
+          is_registered: true,
+        })
+        .eq("id", guestUser.id)
+        .select("id, email")
+        .single();
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      dbUser = result.data;
+    }
+  }
+
+  if (!dbUser && email) {
+    const { data: existingEmailUser, error: existingEmailUserError } = await db
+      .from("users")
+      .select("id, email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existingEmailUserError) {
+      throw existingEmailUserError;
+    }
+
+    if (existingEmailUser) {
+      const result = await db
+        .from("users")
+        .update({
+          auth_user_id: authUserId,
+          email,
+          is_registered: true,
+        })
+        .eq("id", existingEmailUser.id)
+        .select("id, email")
+        .single();
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      dbUser = result.data;
+    }
+  }
+
+  if (!dbUser) {
     const result = await db
       .from("users")
-      .upsert({ email, auth_user_id: authUserId }, { onConflict: "email" })
+      .insert({
+        email,
+        auth_user_id: authUserId,
+        is_registered: true,
+      })
       .select("id, email")
       .single();
 
@@ -50,7 +147,7 @@ export async function syncUserAndMigrateAnonChat(
     }
 
     dbUser = result.data;
-  } else if (dbUser.email !== email) {
+  } else if (email && dbUser.email !== email) {
     const result = await db
       .from("users")
       .update({ email })
@@ -65,42 +162,35 @@ export async function syncUserAndMigrateAnonChat(
     dbUser = result.data;
   }
 
-  if (anonId) {
-    const { data: latestAnonChat, error: chatError } = await db
-      .from("chats")
-      .select("id")
-      .eq("anon_id", anonId)
-      .is("user_id", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
+  if (guestUserId && guestUserId !== dbUser.id) {
+    const { data: guestUser, error: guestUserError } = await db
+      .from("users")
+      .select("id, is_registered")
+      .eq("id", guestUserId)
       .maybeSingle();
 
-    if (chatError) {
-      throw chatError;
+    if (guestUserError) {
+      throw guestUserError;
     }
 
-    if (latestAnonChat) {
-      const { error: updateError } = await db
-        .from("chats")
-        .update({ user_id: dbUser.id, anon_id: null })
-        .eq("id", latestAnonChat.id);
-
-      if (updateError) {
-        throw updateError;
-      }
+    if (guestUser && !guestUser.is_registered) {
+      await migrateGuestChatsToUser(guestUser.id, dbUser.id);
     }
   }
 
   return dbUser.id;
 }
 
-export async function clearAnonId() {
+export async function clearGuestUserId() {
   const cookieStore = await cookies();
-  cookieStore.set(ANON_COOKIE_NAME, "", {
-    ...getAnonCookieOptions(),
+  cookieStore.set(GUEST_USER_COOKIE_NAME, "", {
+    ...getGuestUserCookieOptions(),
     maxAge: 0,
   });
-  await clearFallbackAnonUsage();
+  cookieStore.set(LEGACY_ANON_COOKIE_NAME, "", {
+    ...getGuestUserCookieOptions(),
+    maxAge: 0,
+  });
 }
 
 export async function getAuthContext(): Promise<AuthContext> {
@@ -123,21 +213,52 @@ export async function getAuthContext(): Promise<AuthContext> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user?.id && user.email) {
-    const userId = await syncUserAndMigrateAnonChat(user.id, user.email);
-    return { userId, anonId: null };
+  if (user?.id) {
+    const guestUserId = await getStoredGuestUserId();
+    const userId = await syncRegisteredUser(user.id, user.email ?? null, guestUserId);
+    return { userId, isRegistered: true };
   }
 
-  const anonId = cookieStore.get(ANON_COOKIE_NAME)?.value ?? null;
-  return { userId: null, anonId };
+  const existingGuestUserId = await getStoredGuestUserId();
+  if (existingGuestUserId) {
+    const db = createServerSupabase();
+    const { data: existingGuestUser, error } = await db
+      .from("users")
+      .select("id, is_registered")
+      .eq("id", existingGuestUserId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (existingGuestUser && !existingGuestUser.is_registered) {
+      await persistGuestUserId(existingGuestUser.id);
+      return {
+        userId: existingGuestUser.id,
+        isRegistered: false,
+      };
+    }
+  }
+
+  const db = createServerSupabase();
+  const { data: newGuestUser, error: insertError } = await db
+    .from("users")
+    .insert({ is_registered: false })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    throw insertError;
+  }
+
+  await persistGuestUserId(newGuestUser.id);
+  return {
+    userId: newGuestUser.id,
+    isRegistered: false,
+  };
 }
 
-export async function ensureAnonId(): Promise<string> {
-  const cookieStore = await cookies();
-  const existing = cookieStore.get(ANON_COOKIE_NAME)?.value;
-  if (existing) return existing;
-
-  const id = uuid();
-  cookieStore.set(ANON_COOKIE_NAME, id, getAnonCookieOptions());
-  return id;
+export async function getGuestUserIdFromCookies() {
+  return getStoredGuestUserId();
 }

@@ -23,10 +23,15 @@ export function DeleteChatButton() {
     setConfirmOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    deleteChat.mutate(chatId);
-    router.push("/");
-    setConfirmOpen(false);
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteChat.mutateAsync(chatId);
+      setConfirmOpen(false);
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
   };
 
   return (
@@ -46,7 +51,11 @@ export function DeleteChatButton() {
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmDelete()}
+              disabled={deleteChat.isPending}
+            >
               Delete
             </Button>
           </DialogFooter>

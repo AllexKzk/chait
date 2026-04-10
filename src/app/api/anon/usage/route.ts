@@ -1,25 +1,23 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase-server";
-import { FREE_LIMIT, getAnonUsageCount } from "@/lib/anon-usage";
+import { FREE_LIMIT, getRemainingFreeMessages } from "@/lib/anon-usage";
+import { createAuthServerClient } from "@/lib/supabase-auth-server";
 
 export async function GET() {
   try {
-    const { userId, anonId } = await getAuthContext();
-
-    if (userId) {
+    const { userId, isRegistered } = await getAuthContext();
+    if (isRegistered) {
       return NextResponse.json({ used: 0, limit: FREE_LIMIT, unlimited: true });
     }
 
-    if (!anonId) {
-      return NextResponse.json({ used: 0, limit: FREE_LIMIT, unlimited: false });
-    }
-
-    const db = createServerSupabase();
-    const used = await getAnonUsageCount(db, anonId);
+    const db = isRegistered
+      ? await createAuthServerClient()
+      : createServerSupabase();
+    const remaining = await getRemainingFreeMessages(db, userId);
 
     return NextResponse.json({
-      used,
+      used: Math.max(0, FREE_LIMIT - remaining),
       limit: FREE_LIMIT,
       unlimited: false,
     });

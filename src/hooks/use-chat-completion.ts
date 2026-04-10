@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiKey } from "@/components/header/user-settings-dialog";
-import { DEFAULT_MODEL } from "@/lib/openrouter";
+import { DEFAULT_MODEL, FREE_MODEL_ID } from "@/lib/openrouter";
 import type { Message } from "@/types";
 
 const failedMessagesStorageKey = (chatId: string) =>
@@ -83,6 +83,12 @@ function normalizeErrorDetails(details: unknown): string | undefined {
   }
 
   return String(details);
+}
+
+function isFreeModelQuotaExceeded(details: string | undefined, model: string) {
+  if (model !== FREE_MODEL_ID || !details) return false;
+
+  return /free-models-per-day|rate limit exceeded/i.test(details);
 }
 
 export function useChatCompletion(chatId: string) {
@@ -205,15 +211,22 @@ export function useChatCompletion(chatId: string) {
             .catch(() => ({ error: "Request failed" }))) as CompletionErrorPayload;
           const details = normalizeErrorDetails(err.details);
           const wasDelivered = err.deliveryStatus === "delivered";
+          const freeModelQuotaExceeded = isFreeModelQuotaExceeded(details, model);
 
           setLastError({
-            title: wasDelivered
-              ? "LLM returned an error"
-              : "Message was not delivered",
-            message: wasDelivered
-              ? "Your message was saved, but the model could not generate a response."
-              : "The message was saved locally so you can resend it.",
-            details: details ?? err.error ?? "Request failed",
+            title: freeModelQuotaExceeded
+              ? "Free model limit reached"
+              : wasDelivered
+                ? "LLM returned an error"
+                : "Message was not delivered",
+            message: freeModelQuotaExceeded
+              ? "This OpenRouter key has exhausted its daily free-model quota. Add credits, switch to a paid model, or use another API key."
+              : wasDelivered
+                ? "Your message was saved, but the model could not generate a response."
+                : "The message was saved locally so you can resend it.",
+            details: freeModelQuotaExceeded
+              ? "OpenRouter daily free-model limit reached for this API key."
+              : details ?? err.error ?? "Request failed",
           });
 
           if (!wasDelivered) {

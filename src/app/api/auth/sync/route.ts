@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { clearAnonId, syncUserAndMigrateAnonChat } from "@/lib/auth";
+import {
+  clearGuestUserId,
+  getGuestUserIdFromCookies,
+  syncRegisteredUser,
+} from "@/lib/auth";
 
 export async function POST() {
   try {
@@ -23,13 +27,13 @@ export async function POST() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user?.email) {
+    if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const anonId = cookieStore.get("anon_id")?.value ?? null;
-    await syncUserAndMigrateAnonChat(user.id, user.email, anonId);
-    await clearAnonId();
+    const guestUserId = await getGuestUserIdFromCookies();
+    await syncRegisteredUser(user.id, user.email ?? null, guestUserId);
+    await clearGuestUserId();
 
     return NextResponse.json({ ok: true });
   } catch (err) {

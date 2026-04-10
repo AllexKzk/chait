@@ -1,11 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { ensureAnonId } from "@/lib/auth";
 import { requireChatAccess } from "@/lib/chat-access";
-import {
-  FREE_LIMIT,
-  consumeAnonQuota,
-} from "@/lib/anon-usage";
+import { consumeUserQuota } from "@/lib/anon-usage";
 import {
   OPENROUTER_API_URL,
   AVAILABLE_MODELS,
@@ -136,11 +132,10 @@ export async function POST(
       return access.errorResponse;
     }
 
-    const { db, userId } = access;
-    const anonId = userId ? null : await ensureAnonId();
+    const { db, userId, isRegistered } = access;
 
-    if (!userId && anonId) {
-      const quotaAccepted = await consumeAnonQuota(db, anonId, FREE_LIMIT);
+    if (!isRegistered) {
+      const quotaAccepted = await consumeUserQuota(db, userId);
       if (!quotaAccepted) {
         return Response.json(
           {
@@ -276,16 +271,21 @@ export async function POST(
 
     if (!openRouterRes.ok) {
       const errText = await openRouterRes.text();
+      const providerDetails = extractProviderErrorDetails(errText);
       console.error("OpenRouter error:", {
         status: openRouterRes.status,
-        details: extractProviderErrorDetails(errText),
+        details: providerDetails,
       });
       return Response.json(
         {
-          error: "LLM request failed",
+          error:
+            openRouterRes.status === 429
+              ? "Rate limit exceeded"
+              : "LLM request failed",
+          details: providerDetails,
           deliveryStatus: "delivered",
         },
-        { status: 502 }
+        { status: openRouterRes.status === 429 ? 429 : 502 }
       );
     }
 

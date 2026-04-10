@@ -7,41 +7,30 @@ import { createAuthServerClient } from "@/lib/supabase-auth-server";
 type ChatAccessResult =
   | {
       db: SupabaseClient;
-      userId: string | null;
-      anonId: string | null;
-      chat: { id: string; user_id: string | null; anon_id: string | null };
+      userId: string;
+      isRegistered: boolean;
+      chat: { id: string; user_id: string };
       errorResponse: null;
     }
   | {
       db: SupabaseClient;
-      userId: string | null;
-      anonId: string | null;
+      userId: string;
+      isRegistered: boolean;
       chat: null;
       errorResponse: NextResponse;
     };
 
-function isChatOwner(
-  userId: string | null,
-  anonId: string | null,
-  chat: { user_id: string | null; anon_id: string | null }
-) {
-  return (
-    (Boolean(userId) && chat.user_id === userId) ||
-    (!userId && Boolean(anonId) && chat.anon_id === anonId)
-  );
-}
-
 export async function requireChatAccess(
   chatId: string
 ): Promise<ChatAccessResult> {
-  const { userId, anonId } = await getAuthContext();
-  const db = userId
+  const { userId, isRegistered } = await getAuthContext();
+  const db = isRegistered
     ? await createAuthServerClient()
     : createServerSupabase();
 
   const { data: chat, error } = await db
     .from("chats")
-    .select("id, user_id, anon_id")
+    .select("id, user_id")
     .eq("id", chatId)
     .maybeSingle();
 
@@ -49,11 +38,11 @@ export async function requireChatAccess(
     throw error;
   }
 
-  if (!chat || !isChatOwner(userId, anonId, chat)) {
+  if (!chat || chat.user_id !== userId) {
     return {
       db,
       userId,
-      anonId,
+      isRegistered,
       chat: null,
       errorResponse: NextResponse.json(
         { error: "Chat not found" },
@@ -65,7 +54,7 @@ export async function requireChatAccess(
   return {
     db,
     userId,
-    anonId,
+    isRegistered,
     chat,
     errorResponse: null,
   };

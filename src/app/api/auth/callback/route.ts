@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { clearAnonId, syncUserAndMigrateAnonChat } from "@/lib/auth";
+import {
+  clearGuestUserId,
+  getGuestUserIdFromCookies,
+  syncRegisteredUser,
+} from "@/lib/auth";
 import { getSafeRedirectPath } from "@/lib/security";
 
 const otpTypeSchema = z.enum(["signup", "email"]);
@@ -39,9 +43,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=auth_failed`);
     }
 
-    const anonId = cookieStore.get("anon_id")?.value ?? null;
-    await syncUserAndMigrateAnonChat(data.user.id, data.user.email!, anonId);
-    await clearAnonId();
+    const guestUserId = await getGuestUserIdFromCookies();
+    await syncRegisteredUser(data.user.id, data.user.email ?? null, guestUserId);
+    await clearGuestUserId();
 
     return NextResponse.redirect(`${origin}${next}`);
   }
@@ -62,9 +66,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=verification_failed`);
     }
 
-    const anonId = cookieStore.get("anon_id")?.value ?? null;
-    await syncUserAndMigrateAnonChat(data.user.id, data.user.email!, anonId);
-    await clearAnonId();
+    const guestUserId = await getGuestUserIdFromCookies();
+    await syncRegisteredUser(data.user.id, data.user.email ?? null, guestUserId);
+    await clearGuestUserId();
 
     return NextResponse.redirect(`${origin}${next}`);
   }

@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
-import { getAuthContext, ensureAnonId } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth";
 import { createAuthServerClient } from "@/lib/supabase-auth-server";
 
 export async function GET() {
   try {
-    const { userId, anonId } = await getAuthContext();
-    const db = userId
+    const { userId, isRegistered } = await getAuthContext();
+    const db = isRegistered
       ? await createAuthServerClient()
       : createServerSupabase();
 
-    if (userId) {
+    if (isRegistered) {
       const { data, error } = await db
         .from("chats")
         .select("*")
@@ -21,15 +21,10 @@ export async function GET() {
       return NextResponse.json(data);
     }
 
-    if (!anonId) {
-      return NextResponse.json([]);
-    }
-
     const { data, error } = await db
       .from("chats")
       .select("*")
-      .eq("anon_id", anonId)
-      .is("user_id", null)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -47,19 +42,16 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const { userId } = await getAuthContext();
-    const anonId = userId ? null : await ensureAnonId();
-
-    const db = userId
+    const { userId, isRegistered } = await getAuthContext();
+    const db = isRegistered
       ? await createAuthServerClient()
       : createServerSupabase();
 
-    if (!userId && anonId) {
+    if (!isRegistered) {
       const { data: existingChat, error: existingChatError } = await db
         .from("chats")
         .select("*")
-        .eq("anon_id", anonId)
-        .is("user_id", null)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -74,7 +66,6 @@ export async function POST() {
       .from("chats")
       .insert({
         user_id: userId,
-        anon_id: anonId,
         title: "New Chat",
       })
       .select()

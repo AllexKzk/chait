@@ -1,12 +1,13 @@
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
+  is_registered: boolean;
+  remaining_free_messages: number;
 }
 
 export interface Chat {
   id: string;
-  user_id: string | null;
-  anon_id: string | null;
+  user_id: string;
   title: string;
   created_at: string;
 }

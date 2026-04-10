@@ -39,6 +39,21 @@ export function useDeleteChat() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteChat,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["chats"] }),
+    onMutate: async (deletedChatId: string) => {
+      await qc.cancelQueries({ queryKey: ["chats"] });
+      const previousChats = qc.getQueryData<Chat[]>(["chats"]);
+
+      qc.setQueryData<Chat[]>(["chats"], (old = []) =>
+        old.filter((chat) => chat.id !== deletedChatId)
+      );
+
+      return { previousChats };
+    },
+    onError: (_error, _deletedChatId, context) => {
+      if (context?.previousChats) {
+        qc.setQueryData(["chats"], context.previousChats);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["chats"] }),
   });
 }
