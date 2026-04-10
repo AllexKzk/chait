@@ -4,7 +4,7 @@ Fullstack clone of ChatGPT-like chatbot UI. Created as Test Assigment for [Paral
 
 ## Demo
 
-<video src="https://www.icloud.com/iclouddrive/0fadhf9lm14ONu15NyROYYvrQ#demo-ezgif.com-video-speed" width="560" height="315" controls></video>
+<video src="https://youtu.be/TGSn_ehNPdk" width="560" height="315" controls></video>
 
 ## Features
 
