@@ -15,15 +15,37 @@ import { DocumentList } from "../document-list";
 interface ChatInputProps {
   onSend: (message: string, model: string) => void;
   onAttach?: () => void;
+  onPasteImage?: (file: File) => void;
   disabled?: boolean;
   showAttach?: boolean;
   chatId: string;
   canAttach?: boolean;
 }
 
+function getPastedImageFile(items: DataTransferItemList) {
+  for (const item of items) {
+    if (!item.type.startsWith("image/")) continue;
+
+    const file = item.getAsFile();
+    if (!file) continue;
+
+    const mimeSubtype = file.type.split("/")[1]?.split("+")[0] ?? "png";
+    const fileName =
+      file.name || `pasted-image-${Date.now()}.${mimeSubtype.toLowerCase()}`;
+
+    return new File([file], fileName, {
+      type: file.type || "image/png",
+      lastModified: Date.now(),
+    });
+  }
+
+  return null;
+}
+
 export function ChatInput({
   onSend,
   onAttach,
+  onPasteImage,
   disabled = false,
   chatId,
   canAttach = true,
@@ -53,6 +75,16 @@ export function ChatInput({
       e.preventDefault();
       handleSubmit();
     }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (disabled || !canAttach || !onPasteImage) return;
+
+    const file = getPastedImageFile(e.clipboardData.items);
+    if (!file) return;
+
+    e.preventDefault();
+    onPasteImage(file);
   };
 
   return (
@@ -99,6 +131,7 @@ export function ChatInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Type a message..."
           maxLength={MAX_MESSAGE_LENGTH}
           className="min-h-[44px] max-h-[200px] resize-none"

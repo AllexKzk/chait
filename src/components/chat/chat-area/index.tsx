@@ -107,6 +107,16 @@ export function ChatArea({ chatId }: ChatAreaProps) {
     fileInputRef.current?.click();
   };
 
+  const handleUploadFile = (file: File) => {
+    uploadDoc.mutate(file, {
+      onError: (error) => {
+        setUploadToast(
+          error instanceof Error ? error.message : "Failed to upload file",
+        );
+      },
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!canAttach) {
       e.target.value = "";
@@ -115,13 +125,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
 
     const file = e.target.files?.[0];
     if (file) {
-      uploadDoc.mutate(file, {
-        onError: (error) => {
-          setUploadToast(
-            error instanceof Error ? error.message : "Failed to upload file",
-          );
-        },
-      });
+      handleUploadFile(file);
       e.target.value = "";
     }
   };
@@ -198,6 +202,7 @@ export function ChatArea({ chatId }: ChatAreaProps) {
           chatId={chatId}
           onSend={handleSend}
           onAttach={handleAttach}
+          onPasteImage={handleUploadFile}
           disabled={isStreaming}
           canAttach={canAttach}
           showAttach
